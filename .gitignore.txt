@@ -1,0 +1,25 @@
+# Python
+__pycache__/
+*.pyc
+venv/
+.venv/
+
+# Secrets (DB passwords, API keys)
+.env
+
+# Node / frontend
+node_modules/
+dist/
+
+# ML artifacts (large files)
+*.pkl
+*.joblib
+
+# Raw datasets (too big for GitHub)
+data/raw/
+
+# OS / editor
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
