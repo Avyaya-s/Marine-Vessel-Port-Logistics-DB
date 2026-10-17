@@ -51,7 +51,7 @@ SELECT pg_temp.expect_accept('4. back-to-back booking (starts exactly when call 
 
 SELECT pg_temp.expect_accept('5. same time window on a different berth',
   $q$INSERT INTO port_call (imo_number, agent_id, berth_number, berth_start, berth_end, eta)
-     VALUES ('9321483', 1, 'B05', '2026-10-16 00:00+05:30', '2026-10-16 12:00+05:30',
+     VALUES ('9705122', 1, 'B05', '2026-10-16 00:00+05:30', '2026-10-16 12:00+05:30',
              '2026-10-15 22:00+05:30')$q$);
 
 -- Call 6 holds B02 10-17 08:00 to 10-18 08:00; try to move it onto call 2's B01 window.

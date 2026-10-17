@@ -53,3 +53,56 @@ CREATE TRIGGER check_berth_overlap
     ON port_call
     FOR EACH ROW
     EXECUTE FUNCTION trg_check_berth_overlap();
+
+-- ---------------------------------------------------------------------
+-- T2. Reject a vessel that is physically too big for the berth.
+--
+-- Only hard physical limits are enforced here (LOA and draft).  Cargo
+-- type is a planning preference, so allocate_berth() matches it but the
+-- trigger does not; a port can still put a ship at a non-matching berth
+-- manually if it fits.
+--
+-- Fires on imo_number too: swapping the vessel on an existing booking
+-- must be re-checked just like changing the berth.
+-- ---------------------------------------------------------------------
+CREATE OR REPLACE FUNCTION trg_check_berth_fit() RETURNS TRIGGER
+LANGUAGE plpgsql AS $$
+DECLARE
+    v vessel%ROWTYPE;
+    b berth%ROWTYPE;
+BEGIN
+    IF NEW.berth_number IS NULL THEN
+        RETURN NEW;
+    END IF;
+
+    SELECT * INTO v FROM vessel WHERE imo_number   = NEW.imo_number;
+    SELECT * INTO b FROM berth  WHERE berth_number = NEW.berth_number;
+
+    -- FK checks run after BEFORE triggers; if either row is missing,
+    -- let the foreign key report the error instead.
+    IF v.imo_number IS NULL OR b.berth_number IS NULL THEN
+        RETURN NEW;
+    END IF;
+
+    IF v.loa > b.max_loa THEN
+        RAISE EXCEPTION 'Vessel % (LOA % m) is too long for berth % (max LOA % m)',
+                        v.vessel_name, v.loa, b.berth_number, b.max_loa
+              USING ERRCODE = 'check_violation';
+    END IF;
+
+        IF v.draft > b.max_draft THEN
+        RAISE EXCEPTION 'Vessel % (draft % m) is too deep for berth % (max draft % m)',
+                        v.vessel_name, v.draft, b.berth_number, b.max_draft
+              USING ERRCODE = 'check_violation';
+    END IF;
+
+    RETURN NEW;
+END;
+$$;
+
+DROP TRIGGER IF EXISTS check_berth_fit ON port_call;
+CREATE TRIGGER check_berth_fit
+    BEFORE INSERT OR UPDATE OF berth_number, imo_number
+    ON port_call
+    FOR EACH ROW
+    EXECUTE FUNCTION trg_check_berth_fit();
