@@ -99,3 +99,87 @@ BEGIN
     WHERE call_id = p_call_id;
 END;
 $$;
+
+-- ---------------------------------------------------------------------
+-- clear_customs(filing_no, duty)
+--
+-- Customs clearance as ONE transaction (all-or-nothing):
+--   step 1  filing_status -> 'Cleared'
+--   step 2  duty_amount recorded
+--   step 3  the shipment's containers -> 'Released'   (imports only)
+-- If anything fails, PostgreSQL rolls back every change made so far,
+-- so a filing can never be "Cleared" while its containers are stuck.
+--
+-- Checked up front (cheap, gives a clear message):
+--   * the filing exists and is not already Cleared
+--   * duty is given and not negative
+--   * the latest inspection, if any, is not Pending / Discrepancy
+-- Checked after the updates (step 3), deliberately: if a container is
+-- still 'Loaded' on the vessel the procedure raises an error AFTER
+-- steps 1-2 have run, and atomicity undoes them.  This is the
+-- rollback demo.
+--
+-- Exports (Shipping Bill) only get steps 1-2: their containers are
+-- handled by the loading process, not released into the country.
+--
+-- Usage:  CALL clear_customs('BE-2026-000104', 345000);
+-- Returns how many containers were released.
+-- ---------------------------------------------------------------------
+CREATE OR REPLACE PROCEDURE clear_customs(
+    p_filing_no      VARCHAR,
+    p_duty           NUMERIC,
+    INOUT o_released INTEGER DEFAULT NULL)
+LANGUAGE plpgsql AS $$
+DECLARE
+    f            customs_filing%ROWTYPE;
+    last_result  VARCHAR;
+    still_aboard TEXT;
+BEGIN
+    -- lock the filing so two officers cannot clear it at the same time
+    SELECT * INTO f FROM customs_filing WHERE filing_no = p_filing_no FOR UPDATE;
+    IF NOT FOUND THEN
+        RAISE EXCEPTION 'Filing % does not exist', p_filing_no;
+    END IF;
+    IF f.filing_status = 'Cleared' THEN
+        RAISE EXCEPTION 'Filing % is already cleared', p_filing_no;
+    END IF;
+    IF p_duty IS NULL OR p_duty < 0 THEN
+        RAISE EXCEPTION 'Duty must be zero or more, got %', p_duty;
+    END IF;
+
+    SELECT i.result INTO last_result
+    FROM inspection i
+    WHERE i.filing_no = p_filing_no
+    ORDER BY i.inspection_no DESC
+    LIMIT 1;
+    IF last_result IN ('Pending', 'Discrepancy') THEN
+        RAISE EXCEPTION 'Filing % cannot be cleared: latest inspection is %',
+                        p_filing_no, last_result;
+    END IF;
+
+    -- steps 1 + 2
+    UPDATE customs_filing
+    SET filing_status = 'Cleared', duty_amount = p_duty
+    WHERE filing_no = p_filing_no;
+
+    o_released := 0;
+    IF f.filing_type = 'Bill of Entry' THEN
+        -- step 3
+        UPDATE shipment_container
+        SET container_status = 'Released'
+        WHERE shipment_no = f.shipment_no
+          AND container_status IN ('Discharged', 'Held');
+        GET DIAGNOSTICS o_released = ROW_COUNT;
+
+        SELECT string_agg(container_no, ', ' ORDER BY container_no) INTO still_aboard
+        FROM shipment_container
+        WHERE shipment_no = f.shipment_no
+          AND container_status = 'Loaded';
+        IF still_aboard IS NOT NULL THEN
+            RAISE EXCEPTION 'Filing % cannot be cleared: container(s) % still on board the vessel',
+                            p_filing_no, still_aboard
+                  USING HINT = 'All changes made by this call have been rolled back.';
+        END IF;
+    END IF;
+END;
+$$;

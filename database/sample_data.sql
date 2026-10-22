@@ -96,7 +96,7 @@ INSERT INTO shipment_container (shipment_no, container_no, seal_no, container_st
 ('BL-SZX-260002', 'CMAU9988776', 'SL4410035', 'Held'),
 ('BL-NSA-260003', 'TCLU6677889', 'SL7720190', 'Loaded'),
 ('BL-RTM-260004', 'OOLU5544332', 'SL9031457', 'Discharged'),
-('BL-RTM-260004', 'HLXU1122334', 'SL9031458', 'Discharged'),
+('BL-RTM-260004', 'HLXU1122334', 'SL9031458', 'Loaded'),       -- still on board call 2 (discharge in progress)
 ('BL-RTM-260005', 'TGHU3456789', 'SL9031502', 'Discharged');
 
 INSERT INTO customs_filing (filing_no, shipment_no, filing_type, filing_date,

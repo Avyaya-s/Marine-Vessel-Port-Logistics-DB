@@ -154,3 +154,94 @@ CREATE TRIGGER set_call_status
     ON port_call
     FOR EACH ROW
     EXECUTE FUNCTION trg_set_call_status();
+
+-- ---------------------------------------------------------------------
+-- T4. Companies must play the role they are used in.
+--
+-- A foreign key only proves the company exists.  These rules need the
+-- company's type as well:
+--   port_call.agent_id      -> company_type = 'agent'
+--   shipment.shipper_id     -> company_type = 'shipper'
+--   shipment.consignee_id   -> company_type = 'consignee'
+-- One function serves both tables; TG_TABLE_NAME says which fired it.
+-- ---------------------------------------------------------------------
+CREATE OR REPLACE FUNCTION trg_check_company_role() RETURNS TRIGGER
+LANGUAGE plpgsql AS $$
+DECLARE
+    actual VARCHAR(10);
+BEGIN
+    IF TG_TABLE_NAME = 'port_call' THEN
+        SELECT company_type INTO actual FROM company WHERE company_id = NEW.agent_id;
+        IF actual <> 'agent' THEN
+            RAISE EXCEPTION 'Company % is of type %, not agent', NEW.agent_id, actual
+                  USING ERRCODE = 'check_violation';
+        END IF;
+    ELSE  -- shipment
+        SELECT company_type INTO actual FROM company WHERE company_id = NEW.shipper_id;
+        IF actual <> 'shipper' THEN
+            RAISE EXCEPTION 'Company % is of type %, not shipper', NEW.shipper_id, actual
+                  USING ERRCODE = 'check_violation';
+        END IF;
+        SELECT company_type INTO actual FROM company WHERE company_id = NEW.consignee_id;
+        IF actual <> 'consignee' THEN
+            RAISE EXCEPTION 'Company % is of type %, not consignee', NEW.consignee_id, actual
+                  USING ERRCODE = 'check_violation';
+        END IF;
+    END IF;
+    -- if the company does not exist, actual is NULL, "NULL <> 'agent'" is
+    -- not true, and the foreign key reports the error instead
+    RETURN NEW;
+END;
+$$;
+
+DROP TRIGGER IF EXISTS check_company_role ON port_call;
+CREATE TRIGGER check_company_role
+    BEFORE INSERT OR UPDATE OF agent_id
+    ON port_call
+    FOR EACH ROW
+    EXECUTE FUNCTION trg_check_company_role();
+
+DROP TRIGGER IF EXISTS check_company_role ON shipment;
+CREATE TRIGGER check_company_role
+    BEFORE INSERT OR UPDATE OF shipper_id, consignee_id
+    ON shipment
+    FOR EACH ROW
+    EXECUTE FUNCTION trg_check_company_role();
+
+-- ---------------------------------------------------------------------
+-- T5. The same rule from the other side: a company's type cannot change
+-- while it is used in a role that needs the old type.  Without this, an
+-- agent could be re-typed as a shipper and silently break T4.
+-- ---------------------------------------------------------------------
+CREATE OR REPLACE FUNCTION trg_lock_company_type() RETURNS TRIGGER
+LANGUAGE plpgsql AS $$
+DECLARE
+    uses INTEGER;
+BEGIN
+    IF NEW.company_type = OLD.company_type THEN
+        RETURN NEW;
+    END IF;
+
+    SELECT CASE OLD.company_type
+               WHEN 'agent'     THEN (SELECT count(*) FROM port_call WHERE agent_id     = OLD.company_id)
+               WHEN 'shipper'   THEN (SELECT count(*) FROM shipment  WHERE shipper_id   = OLD.company_id)
+               WHEN 'consignee' THEN (SELECT count(*) FROM shipment  WHERE consignee_id = OLD.company_id)
+           END
+      INTO uses;
+
+    IF uses > 0 THEN
+        RAISE EXCEPTION 'Company % cannot change from % to %: it is used as % in % record(s)',
+                        OLD.company_id, OLD.company_type, NEW.company_type,
+                        OLD.company_type, uses
+              USING ERRCODE = 'check_violation';
+    END IF;
+    RETURN NEW;
+END;
+$$;
+
+DROP TRIGGER IF EXISTS lock_company_type ON company;
+CREATE TRIGGER lock_company_type
+    BEFORE UPDATE OF company_type
+    ON company
+    FOR EACH ROW
+    EXECUTE FUNCTION trg_lock_company_type();

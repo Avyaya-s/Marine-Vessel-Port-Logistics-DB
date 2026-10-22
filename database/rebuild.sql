@@ -9,15 +9,17 @@
 \set QUIET on
 SET client_min_messages = warning;   -- hide the "does not exist, skipping" notices
 
-\echo '1/5 schema.sql'
+\echo '1/6 schema.sql'
 \ir schema.sql
-\echo '2/5 triggers.sql'
+\echo '2/6 triggers.sql'
 \ir triggers.sql
-\echo '3/5 procedures.sql'
+\echo '3/6 procedures.sql'
 \ir procedures.sql
-\echo '4/5 views.sql'
+\echo '4/6 views.sql'
 \ir views.sql
-\echo '5/5 sample_data.sql'
+\echo '5/6 roles.sql'
+\ir roles.sql
+\echo '6/6 sample_data.sql'
 \ir sample_data.sql
 
 \echo 'Rebuild complete.'

@@ -19,3 +19,9 @@
 \ir tests/test_call_status.sql
 \echo '== test_views'
 \ir tests/test_views.sql
+\echo '== test_clear_customs'
+\ir tests/test_clear_customs.sql
+\echo '== test_company_roles'
+\ir tests/test_company_roles.sql
+\echo '== test_roles'
+\ir tests/test_roles.sql
