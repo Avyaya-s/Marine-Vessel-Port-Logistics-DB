@@ -25,3 +25,5 @@
 \ir tests/test_company_roles.sql
 \echo '== test_roles'
 \ir tests/test_roles.sql
+\echo '== test_container_size'
+\ir tests/test_container_size.sql

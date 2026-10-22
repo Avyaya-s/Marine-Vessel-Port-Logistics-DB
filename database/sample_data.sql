@@ -80,14 +80,15 @@ INSERT INTO shipment (shipment_no, manifest_no, shipper_id, consignee_id, cargo_
 ('BL-RTM-260005', 'IGM-2026-0002', 5,  8, 'Hydraulic pumps',            'NLRTM', '84136090',  300,     7800.00),
 ('BL-NTL-260006', 'IGM-2026-0003', 10, 7, 'Steam coal in bulk',         'AUNTL', '27011200',    1, 65000000.00);
 
-INSERT INTO container (container_no, iso_type, size) VALUES
-('MSCU1234565', '22G1', 20),
-('MSCU7654321', '45G1', 40),
-('TGHU3456789', '45R1', 40),   -- reefer
-('CMAU9988776', '22G1', 20),
-('OOLU5544332', '45G1', 40),
-('HLXU1122334', 'L5G1', 45),
-('TCLU6677889', '22G1', 20);
+-- size is not inserted: it is a generated column computed from iso_type
+INSERT INTO container (container_no, iso_type) VALUES
+('MSCU1234565', '22G1'),
+('MSCU7654321', '45G1'),
+('TGHU3456789', '45R1'),   -- reefer
+('CMAU9988776', '22G1'),
+('OOLU5544332', '45G1'),
+('HLXU1122334', 'L5G1'),
+('TCLU6677889', '22G1');
 
 -- coal (BL-NTL-260006) is bulk cargo, so it has no containers
 INSERT INTO shipment_container (shipment_no, container_no, seal_no, container_status) VALUES

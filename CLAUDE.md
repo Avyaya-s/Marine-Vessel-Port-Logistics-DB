@@ -19,6 +19,7 @@ DBMS lab project (RVCE, CSE, course CD252IA). Team of 2:
 - `waiting_time` is a **derived** attribute (`atb - ata`), computed in a view, never stored.
 - Port call status values: `Expected` -> `Waiting` -> `Berthed` -> `Departed`.
 - **Plan vs fact times (decided 2026-10-18):** `berth_start`/`berth_end` are the *planned* window (set by `allocate_berth`). `ata`/`atb`/`atd` are *actual* times. `call_status` is derived from the facts by a trigger (ata -> Waiting, atb -> Berthed, atd -> Departed). CHECKs compare facts with facts only.
+- **container.size is a GENERATED column (decided 2026-10-22):** computed from `iso_type` (first char 2/4/L -> 20/40/45 ft), so it can never be set by hand. Handles the transitive dependency container_no -> iso_type -> size without a new table. Option 1 (an ISO_TYPE lookup table, a full 3NF decomposition) is saved in `git stash` ("Option 1: iso_type lookup table") to explore later.
 - Names kept simple: SHIP_LOCATION (AIS positions), COMPANY (agents/shippers/consignees), SHIPMENT (one Bill of Lading).
 
 ## Stack
@@ -37,7 +38,7 @@ DBMS lab project (RVCE, CSE, course CD252IA). Team of 2:
 4. `port_call` (**call_id** PK, imo_number FK->vessel NOT NULL, agent_id FK->company NOT NULL, berth_number FK->berth NULL, berth_start, berth_end, eta, predicted_eta, ata, atb, atd, call_status)
 5. `shipping_manifest` (**manifest_no** PK, call_id FK->port_call, manifest_type IGM/EGM, filing_date) - max 2 per call (one import, one export)
 6. `shipment` (**shipment_no** PK, manifest_no FK, shipper_id FK->company, consignee_id FK->company, cargo_description, origin_port, hs_code, cargo_quantity, gross_weight)
-7. `container` (**container_no** PK, iso_type, size) - container_no format: 4 letters + 7 digits
+7. `container` (**container_no** PK, iso_type, size GENERATED from iso_type) - container_no format: 4 letters + 7 digits
 8. `shipment_container` (**shipment_no + container_no** PK, both FKs, seal_no, container_status) - M:N junction (COVERS relationship)
 9. `customs_filing` (**filing_no** PK, shipment_no FK UNIQUE (1:1), filing_type Bill of Entry/Shipping Bill, filing_date, declared_value, duty_amount, filing_status, risk_score 0-1)
 10. `inspection` (**filing_no + inspection_no** PK, filing_no FK, inspection_date, officer_name, result, remarks) - weak entity

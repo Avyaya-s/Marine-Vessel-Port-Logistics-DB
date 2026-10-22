@@ -2,7 +2,8 @@
 -- Marine Vessel Traffic & Port Logistics Tracking System
 -- schema.sql : relational schema (PostgreSQL 16+)
 --
--- Run order:  schema.sql -> triggers.sql -> sample_data.sql
+-- Run order: see rebuild.sql (schema -> triggers -> procedures -> views
+-- -> roles -> sample_data).
 -- Tables are created parents-first so every FK target already exists.
 -- SHIP_LOCATION and WEATHER_LOG live in MongoDB (see mongo_setup.js).
 -- =====================================================================
@@ -152,17 +153,32 @@ CREATE TABLE shipment (
 );
 
 -- 7. CONTAINER --------------------------------------------------------
--- size is determined by the first character of the ISO 6346 type code
--- (2 = 20 ft, 4 = 40 ft, L = 45 ft).  The CHECK keeps the two consistent.
+-- iso_type is the ISO 6346 size/type code painted on the box (22G1,
+-- 45R1, ...).  Its first character gives the length: 2 = 20 ft,
+-- 4 = 40 ft, L = 45 ft.
+--
+-- 3NF note: size depends on iso_type, not on container_no
+-- (container_no -> iso_type -> size, a transitive dependency).  Instead
+-- of storing it as a normal column that could be typed wrong, size is a
+-- GENERATED column: PostgreSQL computes it from iso_type on every
+-- INSERT/UPDATE and rejects any attempt to set it by hand.
+-- (Alternative kept for later: move size into an ISO_TYPE lookup table.)
+--
+-- size has no NOT NULL on purpose: the iso_type CHECK already guarantees
+-- the first character is 2, 4 or L, so size is never NULL for a valid
+-- row.  NOT NULL is checked before CHECK constraints, so with it a bad
+-- code like '9XG1' would fail with a confusing "size is null" error
+-- instead of the real "invalid iso_type" one.
 CREATE TABLE container (
     container_no  CHAR(11)  PRIMARY KEY
                             CHECK (container_no ~ '^[A-Z]{4}[0-9]{7}$'),
     iso_type      CHAR(4)   NOT NULL CHECK (iso_type ~ '^[24L][0-9A-Z]{3}$'),
-    size          SMALLINT  NOT NULL CHECK (size IN (20, 40, 45)),
-    CONSTRAINT chk_size_matches_iso CHECK (
-           (size = 20 AND iso_type LIKE '2%')
-        OR (size = 40 AND iso_type LIKE '4%')
-        OR (size = 45 AND iso_type LIKE 'L%'))
+    size          SMALLINT  GENERATED ALWAYS AS (
+                      CASE left(iso_type, 1)
+                          WHEN '2' THEN 20
+                          WHEN '4' THEN 40
+                          WHEN 'L' THEN 45
+                      END) STORED
 );
 
 -- 8. SHIPMENT_CONTAINER (M:N, "COVERS") --------------------------------
