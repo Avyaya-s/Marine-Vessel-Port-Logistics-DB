@@ -106,3 +106,51 @@ CREATE TRIGGER check_berth_fit
     ON port_call
     FOR EACH ROW
     EXECUTE FUNCTION trg_check_berth_fit();
+
+-- ---------------------------------------------------------------------
+-- T3. Keep call_status in sync with the actual-time columns.
+--
+-- The status is derived from the latest fact recorded:
+--     atd set -> Departed,  atb set -> Berthed,  ata set -> Waiting,
+--     none    -> Expected.
+-- A trigger cannot fire "when the clock reaches berth_start", so the
+-- status follows facts (ata / atb / atd), which are written when the
+-- event actually happens (geofence, operator, AIS).
+--
+-- call_status is stored (not computed in a view) so dashboards can
+-- filter on it cheaply; this trigger is what keeps that copy correct.
+-- Setting call_status by hand to a value that contradicts the facts is
+-- rejected: record the timestamp instead.
+-- ---------------------------------------------------------------------
+CREATE OR REPLACE FUNCTION trg_set_call_status() RETURNS TRIGGER
+LANGUAGE plpgsql AS $$
+DECLARE
+    derived VARCHAR(10);
+BEGIN
+    derived := CASE
+                   WHEN NEW.atd IS NOT NULL THEN 'Departed'
+                   WHEN NEW.atb IS NOT NULL THEN 'Berthed'
+                   WHEN NEW.ata IS NOT NULL THEN 'Waiting'
+                   ELSE 'Expected'
+               END;
+
+    IF TG_OP = 'UPDATE'
+       AND NEW.call_status IS DISTINCT FROM OLD.call_status
+       AND NEW.call_status <> derived THEN
+        RAISE EXCEPTION 'call_status cannot be set to % for call %: the recorded times say %',
+                        NEW.call_status, NEW.call_id, derived
+              USING ERRCODE = 'check_violation',
+                    HINT    = 'Set ata, atb or atd instead; the status follows automatically.';
+    END IF;
+
+    NEW.call_status := derived;
+    RETURN NEW;
+END;
+$$;
+
+DROP TRIGGER IF EXISTS set_call_status ON port_call;
+CREATE TRIGGER set_call_status
+    BEFORE INSERT OR UPDATE OF ata, atb, atd, call_status
+    ON port_call
+    FOR EACH ROW
+    EXECUTE FUNCTION trg_set_call_status();

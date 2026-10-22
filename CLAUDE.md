@@ -16,8 +16,9 @@ DBMS lab project (RVCE, CSE, course CD252IA). Team of 2:
 ## Design decisions (settled, do not change without asking)
 - **Single port only.** There is no PORT table; the system *is* the port. Loading port is a plain attribute (`origin_port`) on SHIPMENT.
 - **One berth per visit.** No BERTH_ALLOCATION table; the berth is a nullable FK in PORT_CALL with `berth_start`, `berth_end`.
-- `waiting_time` is a **derived** attribute (`berth_start - ata`), computed in a view, never stored.
+- `waiting_time` is a **derived** attribute (`atb - ata`), computed in a view, never stored.
 - Port call status values: `Expected` -> `Waiting` -> `Berthed` -> `Departed`.
+- **Plan vs fact times (decided 2026-10-18):** `berth_start`/`berth_end` are the *planned* window (set by `allocate_berth`). `ata`/`atb`/`atd` are *actual* times. `call_status` is derived from the facts by a trigger (ata -> Waiting, atb -> Berthed, atd -> Departed). CHECKs compare facts with facts only.
 - Names kept simple: SHIP_LOCATION (AIS positions), COMPANY (agents/shippers/consignees), SHIPMENT (one Bill of Lading).
 
 ## Stack
@@ -33,7 +34,7 @@ DBMS lab project (RVCE, CSE, course CD252IA). Team of 2:
 1. `vessel` (**imo_number** PK, mmsi UNIQUE, vessel_name, flag, vessel_type, loa, draft)
 2. `company` (**company_id** PK, company_name, iec_code, company_type: agent/shipper/consignee)
 3. `berth` (**berth_number** PK, max_loa, max_draft, cargo_type)
-4. `port_call` (**call_id** PK, imo_number FK->vessel NOT NULL, agent_id FK->company NOT NULL, berth_number FK->berth NULL, berth_start, berth_end, eta, predicted_eta, ata, atd, call_status)
+4. `port_call` (**call_id** PK, imo_number FK->vessel NOT NULL, agent_id FK->company NOT NULL, berth_number FK->berth NULL, berth_start, berth_end, eta, predicted_eta, ata, atb, atd, call_status)
 5. `shipping_manifest` (**manifest_no** PK, call_id FK->port_call, manifest_type IGM/EGM, filing_date) - max 2 per call (one import, one export)
 6. `shipment` (**shipment_no** PK, manifest_no FK, shipper_id FK->company, consignee_id FK->company, cargo_description, origin_port, hs_code, cargo_quantity, gross_weight)
 7. `container` (**container_no** PK, iso_type, size) - container_no format: 4 letters + 7 digits
@@ -51,7 +52,7 @@ Create tables in the order above (parents before children).
 - Constraints: PK, FK, UNIQUE, NOT NULL, CHECK (loa > 0, risk_score between 0 and 1, status values).
 - Trigger: reject overlapping berth bookings on the same berth.
 - Trigger: reject a vessel whose loa/draft exceeds the berth's max_loa/max_draft.
-- Trigger: update call_status (Berthed at berth_start, Departed when atd set).
+- Trigger: update call_status from ata / atb / atd (Waiting / Berthed / Departed).
 - Trigger/CHECK: at most 2 manifests per port call.
 - Stored procedure `allocate_berth(call_id)`: earliest free berth matching cargo_type, loa, draft.
 - Transaction: customs clearance = filing Cleared + duty recorded + containers Released, all-or-nothing, with a rollback demo.

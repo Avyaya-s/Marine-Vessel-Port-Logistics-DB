@@ -36,26 +36,34 @@ INSERT INTO berth (berth_number, max_loa, max_draft, cargo_type) VALUES
 ('B05', 200.00, 10.00, 'General Cargo');
 
 -- call_id 1-6.  One call in each status, plus one not yet allocated.
+-- call_status is not inserted: the set_call_status trigger derives it
+-- from ata / atb / atd (shown in the comment on each row).
 INSERT INTO port_call (imo_number, agent_id, berth_number, berth_start, berth_end,
-                       eta, predicted_eta, ata, atd, call_status) VALUES
--- 1: finished visit
+                       eta, predicted_eta, ata, atb, atd) VALUES
+-- 1: finished visit (berthed 20 min after plan)                      -> Departed
 ('9321483', 1, 'B02', '2026-10-10 08:00+05:30', '2026-10-11 20:00+05:30',
- '2026-10-10 06:00+05:30', '2026-10-10 05:45+05:30', '2026-10-10 05:30+05:30', '2026-10-11 21:00+05:30', 'Departed'),
--- 2: alongside now
+ '2026-10-10 06:00+05:30', '2026-10-10 05:45+05:30',
+ '2026-10-10 05:30+05:30', '2026-10-10 08:20+05:30', '2026-10-11 21:00+05:30'),
+-- 2: alongside now (berthed 35 min after plan)                       -> Berthed
 ('9412347', 2, 'B01', '2026-10-15 14:00+05:30', '2026-10-17 02:00+05:30',
- '2026-10-15 10:00+05:30', '2026-10-15 11:00+05:30', '2026-10-15 11:20+05:30', NULL, 'Berthed'),
--- 3: at anchorage, berth booked for later today
+ '2026-10-15 10:00+05:30', '2026-10-15 11:00+05:30',
+ '2026-10-15 11:20+05:30', '2026-10-15 14:35+05:30', NULL),
+-- 3: at anchorage, berth booked for later today                      -> Waiting
 ('9527817', 3, 'B03', '2026-10-16 18:00+05:30', '2026-10-18 06:00+05:30',
- '2026-10-16 06:00+05:30', '2026-10-16 06:45+05:30', '2026-10-16 07:10+05:30', NULL, 'Waiting'),
--- 4: inbound, berth pre-allocated
+ '2026-10-16 06:00+05:30', '2026-10-16 06:45+05:30',
+ '2026-10-16 07:10+05:30', NULL, NULL),
+-- 4: inbound, berth pre-allocated                                    -> Expected
 ('9633070', 1, 'B04', '2026-10-18 04:00+05:30', '2026-10-19 10:00+05:30',
- '2026-10-18 01:00+05:30', '2026-10-18 02:30+05:30', NULL, NULL, 'Expected'),
--- 5: inbound, no berth yet (allocate_berth will handle this one)
+ '2026-10-18 01:00+05:30', '2026-10-18 02:30+05:30',
+ NULL, NULL, NULL),
+-- 5: inbound, no berth yet (allocate_berth will handle this one)     -> Expected
 ('9705122', 2, NULL, NULL, NULL,
- '2026-10-19 12:00+05:30', NULL, NULL, NULL, 'Expected'),
--- 6: inbound, same berth as call 1 but a later window
+ '2026-10-19 12:00+05:30', NULL,
+ NULL, NULL, NULL),
+-- 6: inbound, same berth as call 1 but a later window                -> Expected
 ('9876543', 3, 'B02', '2026-10-17 08:00+05:30', '2026-10-18 08:00+05:30',
- '2026-10-17 05:00+05:30', NULL, NULL, NULL, 'Expected');
+ '2026-10-17 05:00+05:30', NULL,
+ NULL, NULL, NULL);
 
 INSERT INTO shipping_manifest (manifest_no, call_id, manifest_type, filing_date) VALUES
 ('IGM-2026-0001', 1, 'IGM', '2026-10-09'),
