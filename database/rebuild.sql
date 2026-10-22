@@ -1,0 +1,23 @@
+-- =====================================================================
+-- rebuild.sql : drop and recreate the whole database in one go.
+-- psql only (\ir is a psql command, pgAdmin cannot run this file).
+--
+--   psql -U postgres -d port_logistics -f database/rebuild.sql
+-- =====================================================================
+
+\set ON_ERROR_STOP on
+\set QUIET on
+SET client_min_messages = warning;   -- hide the "does not exist, skipping" notices
+
+\echo '1/5 schema.sql'
+\ir schema.sql
+\echo '2/5 triggers.sql'
+\ir triggers.sql
+\echo '3/5 procedures.sql'
+\ir procedures.sql
+\echo '4/5 views.sql'
+\ir views.sql
+\echo '5/5 sample_data.sql'
+\ir sample_data.sql
+
+\echo 'Rebuild complete.'
