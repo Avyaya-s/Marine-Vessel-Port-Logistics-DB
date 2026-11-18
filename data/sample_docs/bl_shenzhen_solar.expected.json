@@ -1,0 +1,23 @@
+{
+  "bl_number": "BL-SZX-260008",
+  "vessel_name": "CORAL TRADER",
+  "shipper_name": "Shenzhen Bright Electronics",
+  "consignee_name": "Nilgiri Trading Co",
+  "origin_port": "CNSZX",
+  "cargo_description": "Solar photovoltaic panels, 550W monocrystalline modules",
+  "hs_code": "854143",
+  "cargo_quantity": 62,
+  "gross_weight_kg": 24600.0,
+  "containers": [
+    {
+      "container_no": "TGHU8812345",
+      "iso_type": "45G1",
+      "seal_no": "SZ0091832"
+    },
+    {
+      "container_no": "TCNU5501938",
+      "iso_type": "45G1",
+      "seal_no": "SZ0091833"
+    }
+  ]
+}

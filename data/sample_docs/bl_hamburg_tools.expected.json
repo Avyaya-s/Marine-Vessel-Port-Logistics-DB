@@ -1,0 +1,18 @@
+{
+  "bl_number": "BL-HAM-260009",
+  "vessel_name": "CORAL TRADER",
+  "shipper_name": "Hamburg Precision Tools GmbH",
+  "consignee_name": "Sahyadri Engineering Pvt Ltd",
+  "origin_port": "DEHAM",
+  "cargo_description": "Hand tools: adjustable spanners and wrenches, chrome vanadium steel",
+  "hs_code": null,
+  "cargo_quantity": 860,
+  "gross_weight_kg": 9870.0,
+  "containers": [
+    {
+      "container_no": "HLXU7730045",
+      "iso_type": "22G1",
+      "seal_no": "HL-220931"
+    }
+  ]
+}

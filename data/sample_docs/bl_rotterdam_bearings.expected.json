@@ -1,0 +1,23 @@
+{
+  "bl_number": "BL-RTM-260007",
+  "vessel_name": "CORAL TRADER",
+  "shipper_name": "Rotterdam Machinery BV",
+  "consignee_name": "Kaveri Imports Pvt Ltd",
+  "origin_port": "NLRTM",
+  "cargo_description": "Industrial ball bearings, assorted sizes",
+  "hs_code": "84821000",
+  "cargo_quantity": 240,
+  "gross_weight_kg": 12350.0,
+  "containers": [
+    {
+      "container_no": "MAEU4471203",
+      "iso_type": "45G1",
+      "seal_no": "ML-8831204"
+    },
+    {
+      "container_no": "MAEU4471219",
+      "iso_type": "45G1",
+      "seal_no": "ML-8831205"
+    }
+  ]
+}

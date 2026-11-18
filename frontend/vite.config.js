@@ -9,7 +9,8 @@ export default defineConfig({
   server: {
     port: 5173,
     proxy: {
-      '/api': 'http://127.0.0.1:8000',
+      // API_TARGET lets a second dev server point at another backend (testing)
+      '/api': process.env.API_TARGET || 'http://127.0.0.1:8000',
     },
   },
 })

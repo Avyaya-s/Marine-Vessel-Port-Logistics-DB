@@ -5,6 +5,7 @@ import ComingSoon from './pages/ComingSoon.jsx'
 import Customs from './pages/Customs.jsx'
 import Dashboard from './pages/Dashboard.jsx'
 import PortCalls from './pages/PortCalls.jsx'
+import Upload from './pages/Upload.jsx'
 import { useFetch } from './useFetch.js'
 
 const NAV = [
@@ -17,10 +18,10 @@ const NAV = [
   ]},
   { group: 'Assistant', items: [
     { to: '/ask',    label: 'Ask the Database', icon: '?' },
+    { to: '/upload', label: 'Upload B/L',       icon: '⇪' },
   ]},
   { group: 'Coming soon', items: [
     { to: '/map',    label: 'Live Map', icon: '◎', soon: true },
-    { to: '/upload', label: 'Upload',   icon: '⇪', soon: true },
   ]},
 ]
 const TITLES = Object.fromEntries(NAV.flatMap((g) => g.items.map((i) => [i.to, i.label])))
@@ -127,11 +128,7 @@ export default function App() {
                   time-series collection, joined with vessel names from PostgreSQL by MMSI. Arrival at the
                   anchorage (a $geoWithin geofence) will set the port call's ATA automatically.
                 </ComingSoon>} />
-              <Route path="/upload" element={
-                <ComingSoon title="Document upload" phase="Phase 7 · NLP">
-                  Upload a Bill of Lading or invoice PDF; fields are extracted (pdfplumber + OCR), an HS code
-                  is suggested, and after you confirm them the shipment is inserted.
-                </ComingSoon>} />
+              <Route path="/upload" element={<Upload />} />
               <Route path="/ask" element={<Ask />} />
               <Route path="*" element={<Navigate to="/dashboard" replace />} />
             </Routes>

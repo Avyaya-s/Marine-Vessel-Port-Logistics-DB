@@ -15,12 +15,8 @@ message; step 4 is the real guarantee: even SQL that slips past the checks
 cannot change data, because the database account itself is read-only.
 """
 
-import json
-import os
 import re
 import time
-import urllib.error
-import urllib.request
 from datetime import date, datetime, timedelta
 from decimal import Decimal
 
@@ -29,9 +25,8 @@ from psycopg import errors as pg_errors
 from psycopg.rows import dict_row
 
 from db import nl_pool
+from services.llm import OLLAMA_MODEL, chat
 
-OLLAMA_URL = os.environ.get("OLLAMA_URL", "http://localhost:11434")
-OLLAMA_MODEL = os.environ.get("OLLAMA_MODEL", "qwen2.5:7b")
 MAX_ROWS = 200
 
 # ---------------------------------------------------------------- schema text
@@ -149,23 +144,6 @@ def schema_text() -> str:
 
 # ---------------------------------------------------------------- LLM call
 
-def _ollama_chat(messages: list[dict]) -> str:
-    body = json.dumps({
-        "model": OLLAMA_MODEL,
-        "messages": messages,
-        "stream": False,
-        "keep_alive": "30m",                       # keep the model in GPU memory between questions
-        "options": {"temperature": 0, "num_ctx": 8192},   # temperature 0 = same answer every time
-    }).encode()
-    req = urllib.request.Request(f"{OLLAMA_URL}/api/chat", data=body,
-                                 headers={"Content-Type": "application/json"})
-    try:
-        with urllib.request.urlopen(req, timeout=180) as resp:
-            return json.loads(resp.read())["message"]["content"]
-    except urllib.error.URLError as e:
-        raise RuntimeError(f"Cannot reach Ollama at {OLLAMA_URL}. Is it running? ({e.reason})") from e
-
-
 def _base_messages(question: str) -> list[dict]:
     system = f"{schema_text()}\n\n{GLOSSARY}\n{RULES}"
     messages = [{"role": "system", "content": system}]
@@ -248,7 +226,7 @@ def ask(question: str) -> dict:
         messages = _base_messages(question)
         for attempt in (1, 2):                   # one self-correction retry
             result["attempts"] = attempt
-            reply = _ollama_chat(messages)
+            reply = chat(messages)
             if reply.strip().upper().startswith("CANNOT_ANSWER"):
                 return done(ok=False, error=reply.split(":", 1)[-1].strip() or "The data cannot answer this.")
             sql = extract_sql(reply)
@@ -282,6 +260,6 @@ def ask(question: str) -> dict:
 def warm_up() -> None:
     """Load the model into GPU memory at server start, so the first question is fast."""
     try:
-        _ollama_chat([{"role": "user", "content": "Reply with OK."}])
+        chat([{"role": "user", "content": "Reply with OK."}])
     except Exception:
         pass   # Ollama not running yet: the first real question will report it

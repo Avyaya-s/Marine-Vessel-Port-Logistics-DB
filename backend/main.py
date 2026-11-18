@@ -12,7 +12,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from db import close_pools, fetch_all, pool
-from routers import ask, berths, customs, port_calls
+from routers import ask, berths, customs, documents, port_calls
 from services import nl_query
 
 
@@ -40,6 +40,7 @@ app.include_router(port_calls.router)
 app.include_router(berths.router)
 app.include_router(customs.router)
 app.include_router(ask.router)
+app.include_router(documents.router)
 
 
 @app.get("/api/health")

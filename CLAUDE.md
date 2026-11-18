@@ -71,7 +71,7 @@ Create tables in the order above (parents before children).
 ## AIML / NLP features
 - ETA prediction (regression: Linear baseline, then Random Forest / XGBoost; metric MAE vs agent ETA).
 - Customs risk scoring (classification; precision/recall). Inspection results are training labels.
-- Document extraction (PDF -> fields -> user confirms -> insert) + HS code suggestion.
+- Document extraction (PDF -> fields -> user confirms -> insert) + HS code suggestion. **Built 2026-11-18**: LLM structured output + regex containers + embedding search over `data/hs_codes.csv`; see `docs/document_upload.md`. OCR (Tesseract) not installed yet.
 - NL query assistant (question -> SQL; SELECT only; read-only user; show generated SQL).
 
 ## Data

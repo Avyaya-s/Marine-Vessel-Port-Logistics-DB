@@ -21,7 +21,8 @@ Open http://localhost:5173. Vite forwards every `/api/...` request to the backen
 | Port Calls | every visit; **Allocate berth** button for calls with no berth | `allocate_berth()` |
 | Customs | uncleared filings, riskiest first; **Clear** with a duty amount | `v_pending_customs`, `clear_customs()` |
 | Ask the Database | plain-English question -> generated SQL + results | `/api/ask` (local LLM, read-only `nl_assistant`) |
-| Live Map, Upload | placeholders for Phases 3-4 (MongoDB) and 7 (document extraction) | |
+| Upload B/L | upload a Bill of Lading PDF, review the extracted fields and HS suggestion, confirm to insert. `/upload?sample=<file>` runs a sample directly (demo link) | `/api/documents/*` |
+| Live Map | placeholder for Phases 3-4 (MongoDB) | |
 
 When the database rejects an action (trigger, CHECK or procedure error), the page shows the database's own message in a red banner.
 
