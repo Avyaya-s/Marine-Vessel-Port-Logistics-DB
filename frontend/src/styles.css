@@ -334,6 +334,27 @@ tbody tr:hover { background: color-mix(in srgb, var(--accent) 5%, transparent); 
 .coming p { line-height: 1.55; }
 
 /* =================================================================
+   Ask page
+   ================================================================= */
+.ask-form { display: flex; gap: 10px; }
+.ask-input { flex: 1; width: auto; font-size: 1rem; padding: 11px 14px; border-radius: 10px; }
+.ask-form button { padding: 0 22px; font-size: 0.95rem; border-radius: 10px; }
+.chips { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 14px; }
+.chip { background: var(--accent-soft); color: var(--accent); border-radius: 99px; padding: 6px 12px; font-size: 0.8rem; white-space: normal; text-align: left; }
+.safety { display: flex; flex-wrap: wrap; gap: 6px 16px; margin-top: 16px; padding-top: 12px; border-top: 1px solid var(--border); color: var(--muted); }
+.thinking { padding-left: 4px; }
+.answer { display: flex; flex-direction: column; gap: 12px; }
+.answer-q { font-size: 1.02rem; font-weight: 600; }
+.sql-box { border: 1px solid var(--border); border-radius: 10px; overflow: hidden; }
+.sql-head { display: flex; justify-content: space-between; align-items: center; padding: 6px 8px 6px 12px; font-size: 0.75rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; color: var(--muted); background: var(--page); }
+.sql-box pre { margin: 0; padding: 12px 14px; overflow-x: auto; background: var(--panel); color: #cfe9e5; font-size: 0.85rem; line-height: 1.5; }
+.btn-ghost { background: transparent; color: var(--accent); padding: 3px 8px; font-size: 0.78rem; }
+.pill { margin-left: 8px; text-transform: none; letter-spacing: 0; font-weight: 600; background: var(--accent-soft); color: var(--accent); border-radius: 99px; padding: 1px 8px; }
+.answer-meta { margin-top: -4px; }
+.answer-table { overflow-x: auto; }
+code { font-family: ui-monospace, 'Cascadia Code', Consolas, monospace; }
+
+/* =================================================================
    Narrow screens
    ================================================================= */
 @media (max-width: 900px) {
@@ -344,4 +365,6 @@ tbody tr:hover { background: color-mix(in srgb, var(--accent) 5%, transparent); 
   .nav-group { display: contents; }
   .content { padding: 16px; }
   .page-head { flex-direction: column; align-items: flex-start; }
+  .ask-form { flex-direction: column; }
+  .ask-form button { padding: 10px; }
 }

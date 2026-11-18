@@ -12,7 +12,9 @@ python -m venv .venv
 copy .env.example .env
 ```
 
-Open `.env` and replace `YOUR_PASSWORD` with your postgres password. `.env` is git-ignored, so the password never reaches GitHub.
+Open `.env` and replace `YOUR_PASSWORD` with your postgres password, and `NL_PASSWORD` with the `nl_assistant` password (needed only for the Ask page). `.env` is git-ignored, so the passwords never reach GitHub.
+
+The Ask page also needs **Ollama** running with `qwen2.5:7b` (`ollama pull qwen2.5:7b`).
 
 ## Run
 
@@ -37,6 +39,8 @@ Open `.env` and replace `YOUR_PASSWORD` with your postgres password. `.env` is g
 | GET | `/api/waiting-times` | waiting time, delays, ETA errors | `v_waiting_time` |
 | GET | `/api/customs/pending` | uncleared filings, riskiest first | `v_pending_customs` |
 | POST | `/api/customs/{filing_no}/clear` | clear a filing (body: `{"duty": 345000}`) | `clear_customs()` |
+| POST | `/api/ask` | plain-English question -> SQL -> rows (body: `{"question": "..."}`) | local LLM + `nl_assistant` role |
+| GET | `/api/ask/info` | which LLM model is used | |
 
 When the database rejects a change (trigger, CHECK, or procedure error), the API returns **HTTP 400** with the database's own message, e.g. `"Port call 5 already has berth B05"`. The transaction has already been rolled back.
 
@@ -46,4 +50,6 @@ When the database rejects a change (trigger, CHECK, or procedure error), the API
 |---|---|
 | `main.py` | app setup, CORS, routers |
 | `db.py` | connection pool, `fetch_all` / `fetch_one`, DB error → HTTP 400 |
-| `routers/port_calls.py`, `berths.py`, `customs.py` | the endpoints |
+| `routers/port_calls.py`, `berths.py`, `customs.py`, `ask.py` | the endpoints |
+| `services/nl_query.py` | NL assistant: prompt, LLM call, SQL safety check, read-only execution |
+| `eval_nl.py` | NL assistant evaluation (accuracy + safety); see `docs/nl_assistant.md` |

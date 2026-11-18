@@ -29,7 +29,7 @@ DBMS lab project (RVCE, CSE, course CD252IA). Team of 2:
 - Backend: Python 3.11+, FastAPI, psycopg / SQLAlchemy, PyMongo
 - Frontend: React + Vite, Leaflet (map), Chart.js
 - ML: scikit-learn, XGBoost, pandas
-- NLP: pdfplumber (+ Tesseract OCR), an LLM API (provider not chosen yet; needed only in weeks 7-8)
+- NLP: pdfplumber (+ Tesseract OCR); LLM = **local Ollama, qwen2.5:7b** (decided 2026-11-18: free, offline, data stays local; 7b fits the 8 GB GPU and scored 86% vs 14b's 79% on `backend/eval_nl.py`). See `docs/nl_assistant.md`.
 - Tools: Git/GitHub, pgAdmin 4, MongoDB Compass, Postman
 
 ## Relational schema (PostgreSQL, 10 tables)

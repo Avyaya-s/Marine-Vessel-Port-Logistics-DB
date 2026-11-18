@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { NavLink, Navigate, Route, Routes, useLocation } from 'react-router-dom'
+import Ask from './pages/Ask.jsx'
 import ComingSoon from './pages/ComingSoon.jsx'
 import Customs from './pages/Customs.jsx'
 import Dashboard from './pages/Dashboard.jsx'
@@ -14,10 +15,12 @@ const NAV = [
   { group: 'Customs', items: [
     { to: '/customs',    label: 'Pending Customs', icon: '▤' },
   ]},
+  { group: 'Assistant', items: [
+    { to: '/ask',    label: 'Ask the Database', icon: '?' },
+  ]},
   { group: 'Coming soon', items: [
     { to: '/map',    label: 'Live Map', icon: '◎', soon: true },
     { to: '/upload', label: 'Upload',   icon: '⇪', soon: true },
-    { to: '/ask',    label: 'Ask',      icon: '?', soon: true },
   ]},
 ]
 const TITLES = Object.fromEntries(NAV.flatMap((g) => g.items.map((i) => [i.to, i.label])))
@@ -129,11 +132,7 @@ export default function App() {
                   Upload a Bill of Lading or invoice PDF; fields are extracted (pdfplumber + OCR), an HS code
                   is suggested, and after you confirm them the shipment is inserted.
                 </ComingSoon>} />
-              <Route path="/ask" element={
-                <ComingSoon title="Ask the database" phase="Phase 7 · NLP">
-                  Ask a question in plain English ("which ships waited more than 3 hours?"); it is turned into
-                  SQL, shown to you, and run as the read-only nl_assistant user.
-                </ComingSoon>} />
+              <Route path="/ask" element={<Ask />} />
               <Route path="*" element={<Navigate to="/dashboard" replace />} />
             </Routes>
           </div>
