@@ -1,9 +1,10 @@
 # Marine Vessel Traffic & Port Logistics Tracking System
 
 DBMS lab project (RVCE, CSE, course CD252IA). Team of 2:
-- **Avyaya S Yekkar (1RV24CS057)**: database side (schema, constraints, triggers, procedure, views, transaction, normalization, synthetic data generator, NLP features).
-- **Bhuvan K K (1RV24CS060)**: ML side (AIS replay/simulator, weather job, MongoDB, geofence + ETA write-back, ETA model, customs risk model, frontend).
+- **Avyaya S Yekkar (1RV24CS057)**: database side (schema, constraints, triggers, procedure, views, transaction, normalization, NLP features). Started the FastAPI backend and a first presentable frontend (2026-11-18).
+- **Bhuvan K K (1RV24CS060)**: ML side (synthetic data generator, AIS replay/simulator, weather job, MongoDB, geofence + ETA write-back, ETA model, customs risk model, frontend).
 - Together: FastAPI endpoints, testing, report, demo.
+- **Hand-over (2026-11-18):** the synthetic data generator moved from Avyaya to Bhuvan. It must respect every constraint and trigger in `database/` (see `docs/phase1_summary.md`); Avyaya reviews it and loads it into the database.
 
 ## Department rules (must hold)
 - SQL + NoSQL integration is mandatory.
