@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { BerthTimeline, Legend, MeterList, RankedBars, STATUS_ORDER, SegmentedBar } from '../charts.jsx'
+import { useAuth } from '../auth.jsx'
 import { StatusBadge } from '../components.jsx'
 import { fmtDuration, fmtTime } from '../format.js'
 import { useFetch } from '../useFetch.js'
@@ -38,7 +39,8 @@ export default function Dashboard() {
   const calls = useFetch('/port-calls')
   const berths = useFetch('/berths')
   const waits = useFetch('/waiting-times')
-  const customs = useFetch('/customs/pending')
+  const { can } = useAuth()
+  const customs = useFetch(can('seeCustoms') ? '/customs/pending' : null)
   const [view, setView] = useState('timeline')
 
   const s = summary.data ?? {}
@@ -63,8 +65,9 @@ export default function Dashboard() {
              note={`${berthList.length - occupied} free right now`} />
         <Kpi value={fmtDuration(avg(waited))} label="Avg anchorage wait"
              note={`over ${waited.length} berthed call${waited.length === 1 ? '' : 's'}`} />
-        <Kpi value={pending.length} label="Pending customs"
-             note={`${highRisk} high risk (score ≥ 0.70)`} />
+        {can('seeCustoms')
+          ? <Kpi value={pending.length} label="Pending customs" note={`${highRisk} high risk (score ≥ 0.70)`} />
+          : <Kpi value={totalCalls} label="My port calls" note={`${s.Expected ?? 0} expected · ${s.Departed ?? 0} departed`} />}
       </div>
 
       <section className="panel-dark">
@@ -119,9 +122,11 @@ export default function Dashboard() {
           <RankedBars rows={waitRows} />
         </Card>
 
-        <Card accent="Customs" title="risk queue" subtitle="Uncleared filings, riskiest first (v_pending_customs)." state={customs}>
-          <MeterList rows={pending} />
-        </Card>
+        {can('seeCustoms') && (
+          <Card accent="Customs" title="risk queue" subtitle="Uncleared filings, riskiest first (v_pending_customs)." state={customs}>
+            <MeterList rows={pending} />
+          </Card>
+        )}
       </div>
     </>
   )

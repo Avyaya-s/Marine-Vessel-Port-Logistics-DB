@@ -399,6 +399,23 @@ code { font-family: ui-monospace, 'Cascadia Code', Consolas, monospace; }
 .sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
 
 /* =================================================================
+   Login
+   ================================================================= */
+.login-page { min-height: 100vh; display: grid; place-items: center; padding: 24px 16px; background: var(--page); }
+.login-card { width: 100%; max-width: 400px; padding: 28px; display: flex; flex-direction: column; gap: 20px; }
+.login-brand { display: flex; align-items: center; gap: 12px; }
+.login-title { font-weight: 700; font-size: 1.15rem; }
+.login-form { display: flex; flex-direction: column; gap: 12px; }
+.login-form button { padding: 10px; font-size: 0.95rem; }
+.login-error { color: var(--err-text); background: var(--err-bg); padding: 8px 10px; border-radius: 8px; font-size: 0.85rem; }
+.demo-accounts { border-top: 1px solid var(--border); padding-top: 14px; display: flex; flex-direction: column; gap: 4px; }
+.demo-row { display: flex; justify-content: space-between; background: transparent; color: var(--text); border-radius: 8px; padding: 6px 8px; font-size: 0.85rem; }
+.demo-row:hover { background: var(--accent-soft); }
+.demo-row span { color: var(--muted); }
+.user-chip { display: inline-flex; align-items: center; gap: 8px; font-size: 0.85rem; color: var(--text-2); }
+.user-avatar { width: 28px; height: 28px; border-radius: 50%; display: grid; place-items: center; background: var(--accent-soft); color: var(--accent); font-weight: 700; font-size: 0.72rem; }
+
+/* =================================================================
    Narrow screens
    ================================================================= */
 @media (max-width: 900px) {
@@ -409,6 +426,12 @@ code { font-family: ui-monospace, 'Cascadia Code', Consolas, monospace; }
   .nav-group { display: contents; }
   .content { padding: 16px; }
   .page-head { flex-direction: column; align-items: flex-start; }
+  .topbar { padding: 0 12px; gap: 8px; }
+  .topbar-brand { white-space: nowrap; font-size: 0.95rem; }
+  .topbar-right { gap: 8px; }
+  .api-status { font-size: 0; gap: 0; }          /* keep only the dot */
+  .user-chip { font-size: 0; gap: 0; }           /* keep only the avatar */
+  .topbar .btn-outline { padding: 5px 10px; font-size: 0.8rem; white-space: nowrap; }
   .ask-form { flex-direction: column; }
   .ask-form button { padding: 10px; }
   .upload-grid { grid-template-columns: 1fr; }

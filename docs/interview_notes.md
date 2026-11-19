@@ -23,7 +23,8 @@ Related documents: `docs/phase1_summary.md` (database overview), `docs/normaliza
 12. [Step F2: React frontend and dashboard](#12-step-f2-react-frontend-and-dashboard)
 13. [NLP: Natural-language query assistant](#13-nlp-natural-language-query-assistant)
 14. [NLP: Document upload (Bill of Lading)](#14-nlp-document-upload-bill-of-lading)
-15. [All issues faced (quick list)](#15-all-issues-faced-quick-list)
+15. [Login and roles](#15-login-and-roles)
+16. [All issues faced (quick list)](#16-all-issues-faced-quick-list)
 
 ---
 
@@ -297,7 +298,28 @@ Related documents: `docs/phase1_summary.md` (database overview), `docs/normaliza
 
 ---
 
-## 15. All issues faced (quick list)
+## 15. Login and roles
+
+1. **Application-level authentication**: users in `backend/users.json` (git-ignored), no database change. Chosen to keep the schema unchanged; the upgrade path is a users table + PostgreSQL **row-level security**.
+2. **Authentication vs authorization**: authentication = *who are you?* (login); authorization = *what may you do?* (role checks).
+3. **Passwords are never stored**, only **bcrypt hashes**. bcrypt is **salted** (the same password gives a different hash each time, so precomputed "rainbow tables" don't work) and **deliberately slow** (brute force is impractical).
+4. **JWT (JSON Web Token)**: after login the server returns a signed token (username, role, company, expiry). The browser sends it as `Authorization: Bearer <token>`. Anyone can *read* a JWT, but nobody can *change* the role inside it without the secret: the HMAC-SHA256 signature would no longer match (tested: a forged token gets 401).
+5. **Stateless**: the server doesn't store sessions; the signature proves the token is genuine. Tokens expire after 8 hours.
+6. **401 vs 403**: 401 = not logged in / bad token; 403 = logged in but your role may not do this.
+7. **Roles**: admin (everything), operations (port calls, allocate berth, upload, view customs), customs (customs queue, clear filings), agent (own port calls, upload to own manifests).
+8. **Per-row filtering for agents**: `WHERE (company IS NULL OR pc.agent_id = company)`; the company id comes from the signed token, never from the request, and is passed as a query parameter (no SQL injection).
+9. **The backend enforces, the frontend only hides**: hiding a button is convenience; every endpoint checks the role itself (tested with direct API calls). Never trust the client.
+10. **Agents can't use the Ask page**: LLM-generated SQL can read every table, so it would bypass the per-agent filter. Security decisions must consider every path to the data.
+11. **Login security details**: the same error for unknown user and wrong password, and bcrypt runs even for unknown users, so neither the message nor the response time reveals which usernames exist (**user enumeration**).
+12. **Token storage**: `sessionStorage` (cleared when the tab closes). Trade-off: any script on the page could read it (XSS risk); httpOnly cookies avoid that but need CSRF protection.
+13. **Design note**: berth occupancy (including other agents' vessel names) is visible to agents on purpose; real ports publish berth schedules.
+
+### Issues faced
+14. **Headless screenshots can't log in**: drove Edge through the **DevTools protocol** (a small Node script) to log in as each role and capture each view; it also revealed a cramped top bar on phone widths, now fixed.
+
+---
+
+## 16. All issues faced (quick list)
 
 | # | Issue | Lesson |
 |---|---|---|
@@ -322,3 +344,4 @@ Related documents: `docs/phase1_summary.md` (database overview), `docs/normaliza
 | 19 | LLM merged table columns into a field | Fix deterministic problems in code, not prompts |
 | 20 | StrictMode ran the upload twice | Guard one-off effects with `useRef` |
 | 21 | Backend crashed after a code change | Install new requirements in the venv |
+| 22 | Couldn't screenshot logged-in pages headlessly | Drive the browser via the DevTools protocol |

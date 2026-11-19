@@ -16,6 +16,25 @@ Open `.env` and replace `YOUR_PASSWORD` with your postgres password, and `NL_PAS
 
 The Ask and Upload pages also need **Ollama** running with `qwen2.5:7b` and `nomic-embed-text` (`ollama pull qwen2.5:7b`, `ollama pull nomic-embed-text`).
 
+## Login accounts
+
+The API needs a login. Create the demo accounts once (writes `users.json`, which is git-ignored):
+
+```powershell
+.venv\Scripts\python manage_users.py demo
+```
+
+| Username | Password | Role |
+|---|---|---|
+| admin | admin123 | admin: everything |
+| ops | ops123 | operations: port calls, allocate berths, upload B/L, view customs |
+| customs | customs123 | customs: customs queue, clear filings |
+| seaways | agent123 | agent (company 1): only its own port calls, upload B/L to its own manifests |
+| bluewater | agent123 | agent (company 2) |
+
+Demo passwords only. Add a real user with `manage_users.py add <username> <role> "<name>" [company_id]` (asks for the password).
+Set `JWT_SECRET` in `.env` (see `.env.example`) so logins survive a restart.
+
 ## Run
 
 ```powershell
@@ -31,7 +50,9 @@ The Ask and Upload pages also need **Ollama** running with `qwen2.5:7b` and `nom
 
 | Method | Path | What it does | Database object |
 |---|---|---|---|
-| GET | `/api/health` | API is up and can reach the DB | |
+| GET | `/api/health` | API is up and can reach the DB (no login needed) | |
+| POST | `/api/auth/login` | username + password -> JWT token | `users.json` |
+| GET | `/api/auth/me` | the logged-in user | |
 | GET | `/api/port-calls` | all port calls with vessel, agent, berth | `port_call` + joins |
 | GET | `/api/port-calls/summary` | count of calls per status | `port_call` |
 | POST | `/api/port-calls/{call_id}/allocate` | book the earliest suitable berth | `allocate_berth()` |
@@ -46,6 +67,8 @@ The Ask and Upload pages also need **Ollama** running with `qwen2.5:7b` and `nom
 | GET | `/api/documents/hs-suggest?q=` | HS code suggestions for a description | `data/hs_codes.csv` |
 | GET | `/api/documents/samples` | list / download the sample B/L PDFs | `data/sample_docs/` |
 
+Every endpoint except `/api/health` and `/api/auth/login` needs `Authorization: Bearer <token>`. No token or an expired/forged one gives **401**; a role that may not use the endpoint gives **403**.
+
 When the database rejects a change (trigger, CHECK, or procedure error), the API returns **HTTP 400** with the database's own message, e.g. `"Port call 5 already has berth B05"`. The transaction has already been rolled back.
 
 ## Files
@@ -53,6 +76,8 @@ When the database rejects a change (trigger, CHECK, or procedure error), the API
 | File | Contents |
 |---|---|
 | `main.py` | app setup, CORS, routers |
+| `auth.py` | password hashing (bcrypt), JWT tokens, `require(role...)` checks |
+| `manage_users.py` | create login accounts in `users.json` |
 | `db.py` | connection pool, `fetch_all` / `fetch_one`, DB error → HTTP 400 |
 | `routers/port_calls.py`, `berths.py`, `customs.py`, `ask.py` | the endpoints |
 | `services/llm.py` | Ollama calls shared by the NLP features (chat with JSON schema, embeddings) |

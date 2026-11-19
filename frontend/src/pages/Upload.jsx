@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import { get, post } from '../api.js'
+import { authHeaders, get, post } from '../api.js'
 import { Notice } from '../components.jsx'
 import { useFetch } from '../useFetch.js'
 
@@ -9,7 +9,7 @@ const ICON = { ok: '✓', info: 'i', warning: '!', error: '✕' }
 async function uploadPdf(file) {
   const form = new FormData()
   form.append('file', file)
-  const res = await fetch('/api/documents/extract', { method: 'POST', body: form })
+  const res = await fetch('/api/documents/extract', { method: 'POST', body: form, headers: authHeaders() })
   const body = await res.json().catch(() => null)
   if (!res.ok) throw new Error(typeof body?.detail === 'string' ? body.detail : `Upload failed (HTTP ${res.status})`)
   return body
@@ -166,7 +166,7 @@ export default function Upload() {
   }
 
   async function trySample(name) {
-    const blob = await (await fetch(`/api/documents/samples/${name}`)).blob()
+    const blob = await (await fetch(`/api/documents/samples/${name}`, { headers: authHeaders() })).blob()
     run(new File([blob], name, { type: 'application/pdf' }))
   }
 

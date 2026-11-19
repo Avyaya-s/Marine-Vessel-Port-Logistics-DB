@@ -159,8 +159,9 @@ def normalise(f: dict) -> dict:
 
 # ---------------------------------------------------------------- 3. checks
 
-def manifests() -> list[dict]:
-    """Import manifests to choose from, with the vessel of each call."""
+def manifests(agent_company: int | None = None) -> list[dict]:
+    """Import manifests to choose from, with the vessel of each call.
+    An agent only gets the manifests of port calls their company handles."""
     with pool.connection() as conn:
         return conn.execute("""
             SELECT m.manifest_no, m.call_id, v.vessel_name, pc.call_status
@@ -168,8 +169,9 @@ def manifests() -> list[dict]:
             JOIN port_call pc ON pc.call_id = m.call_id
             JOIN vessel v ON v.imo_number = pc.imo_number
             WHERE m.manifest_type = 'IGM'
+              AND (%(co)s::int IS NULL OR pc.agent_id = %(co)s::int)
             ORDER BY m.manifest_no
-        """).fetchall()
+        """, {"co": agent_company}).fetchall()
 
 
 def _company(conn, name):
@@ -177,7 +179,7 @@ def _company(conn, name):
                         (name,)).fetchone()
 
 
-def run_checks(f: dict, containers: list[dict]) -> tuple[list[dict], str | None]:
+def run_checks(f: dict, containers: list[dict], agent_company: int | None = None) -> tuple[list[dict], str | None]:
     checks = []
     add = lambda level, text: checks.append({"level": level, "text": text})
     suggested_manifest = None
@@ -209,13 +211,14 @@ def run_checks(f: dict, containers: list[dict]) -> tuple[list[dict], str | None]
             add("info", "No containers found (bulk cargo?).")
 
         if f["vessel_name"]:
-            for m in manifests():
+            for m in manifests(agent_company):
                 if m["vessel_name"].lower() == f["vessel_name"].lower():
                     suggested_manifest = m["manifest_no"]
                     add("ok", f'Vessel {f["vessel_name"]} -> import manifest {m["manifest_no"]} (call {m["call_id"]}).')
                     break
             else:
-                add("warning", f'No import manifest found for vessel "{f["vessel_name"]}"; choose one.')
+                add("warning", f'No import manifest found for vessel "{f["vessel_name"]}"'
+                             + (' among your own port calls.' if agent_company else '; choose one.'))
 
     if f["origin_port"] and not LOCODE_RE.match(f["origin_port"]):
         add("warning", f'"{f["origin_port"]}" is not a valid UN/LOCODE (5 letters, e.g. NLRTM).')
@@ -248,13 +251,13 @@ def hs_advice(f: dict) -> tuple[list[dict], list[dict]]:
 
 # ---------------------------------------------------------------- extract
 
-def extract(data: bytes) -> dict:
+def extract(data: bytes, agent_company: int | None = None) -> dict:
     started = time.perf_counter()
     text, pages = pdf_text(data)
     raw = llm_fields(text)
     fields = normalise(raw)
     containers, notes = merge_containers(text, raw.get("containers") or [])
-    checks, suggested_manifest = run_checks(fields, containers)
+    checks, suggested_manifest = run_checks(fields, containers, agent_company)
     suggestions, hs_notes = hs_advice(fields)
     if not fields["hs_code"] and suggestions:
         fields["hs_code"] = suggestions[0]["hs_code"]          # pre-fill; the user confirms
@@ -263,7 +266,7 @@ def extract(data: bytes) -> dict:
         "fields": fields,
         "containers": containers,
         "hs_suggestions": suggestions,
-        "manifests": manifests(),
+        "manifests": manifests(agent_company),
         "suggested_manifest": suggested_manifest,
         "checks": checks,
         "raw_text": text,
@@ -284,10 +287,13 @@ def _get_or_create_company(conn, name: str, role: str) -> int:
                         (name, role)).fetchone()["company_id"]
 
 
-def confirm(s: dict) -> dict:
+def confirm(s: dict, agent_company: int | None = None) -> dict:
     """Insert the confirmed shipment in ONE transaction: new companies, the
     shipment, new containers and the shipment-container links.  If any row
-    is rejected (by a CHECK, FK or trigger) nothing at all is saved."""
+    is rejected (by a CHECK, FK or trigger) nothing at all is saved.
+    An agent may only add shipments to manifests of their own port calls."""
+    if agent_company is not None and s["manifest_no"] not in {m["manifest_no"] for m in manifests(agent_company)}:
+        raise ValueError(f'Manifest {s["manifest_no"]} does not belong to one of your port calls.')
     try:
         with pool.connection() as conn:          # one transaction: commit at the end, rollback on error
             shipper_id = _get_or_create_company(conn, s["shipper_name"], "shipper")

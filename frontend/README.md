@@ -13,6 +13,10 @@ npm run dev
 
 Open http://localhost:5173. Vite forwards every `/api/...` request to the backend on port 8000 (see `vite.config.js`).
 
+## Login
+
+The app starts at a login page (demo accounts listed on it; see `backend/README.md`). The token is kept in `sessionStorage` (gone when the tab closes) and sent with every request; a 401 logs you out. Pages and buttons a role can't use are hidden, but **the backend is what enforces the rules**: hiding a button is only convenience.
+
 ## Pages
 
 | Page | Shows | Database objects behind it |
@@ -31,7 +35,9 @@ When the database rejects an action (trigger, CHECK or procedure error), the pag
 | File | Contents |
 |---|---|
 | `src/App.jsx` | layout, sidebar, routes |
-| `src/api.js` | `get` / `post` helpers; turns API errors into readable messages |
+| `src/api.js` | `get` / `post` helpers; adds the login token; turns API errors into readable messages |
+| `src/auth.jsx` | login state, `login` / `logout`, which role may see which page or button |
+| `src/pages/Login.jsx` | login page |
 | `src/useFetch.js` | load data when a page opens, `reload()` after a change |
 | `src/format.js` | times in IST, durations, INR amounts |
 | `src/components.jsx` | status and risk badges, notices, sections |

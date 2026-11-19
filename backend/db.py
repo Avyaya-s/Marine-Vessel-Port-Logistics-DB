@@ -57,7 +57,7 @@ def close_pools() -> None:
         _nl_pool.close()
 
 
-def fetch_all(sql: str, params: tuple = ()) -> list[dict]:
+def fetch_all(sql: str, params: tuple | dict = ()) -> list[dict]:
     """Run a SELECT and return every row as a dict."""
     with pool.connection() as conn:
         return conn.execute(sql, params).fetchall()

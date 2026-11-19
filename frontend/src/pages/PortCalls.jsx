@@ -1,10 +1,12 @@
 import { useState } from 'react'
 import { post } from '../api.js'
+import { useAuth } from '../auth.jsx'
 import { Notice, Section, StatusBadge } from '../components.jsx'
 import { fmtTime } from '../format.js'
 import { useFetch } from '../useFetch.js'
 
 export default function PortCalls() {
+  const { can } = useAuth()
   const calls = useFetch('/port-calls')
   const [busy, setBusy] = useState(null)       // call_id being allocated
   const [notice, setNotice] = useState(null)
@@ -48,7 +50,7 @@ export default function PortCalls() {
               <td>{c.berth_number ?? <span className="muted">none</span>}</td>
               <td>{c.berth_start ? `${fmtTime(c.berth_start)} → ${fmtTime(c.berth_end)}` : '—'}</td>
               <td className="right">
-                {!c.berth_number && c.call_status !== 'Departed' && (
+                {can('allocateBerth') && !c.berth_number && c.call_status !== 'Departed' && (
                   <button onClick={() => allocate(c)} disabled={busy !== null}>
                     {busy === c.call_id ? 'Allocating…' : 'Allocate berth'}
                   </button>

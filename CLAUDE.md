@@ -21,6 +21,7 @@ DBMS lab project (RVCE, CSE, course CD252IA). Team of 2:
 - Port call status values: `Expected` -> `Waiting` -> `Berthed` -> `Departed`.
 - **Plan vs fact times (decided 2026-10-18):** `berth_start`/`berth_end` are the *planned* window (set by `allocate_berth`). `ata`/`atb`/`atd` are *actual* times. `call_status` is derived from the facts by a trigger (ata -> Waiting, atb -> Berthed, atd -> Departed). CHECKs compare facts with facts only.
 - **container.size is a GENERATED column (decided 2026-10-22):** computed from `iso_type` (first char 2/4/L -> 20/40/45 ft), so it can never be set by hand. Handles the transitive dependency container_no -> iso_type -> size without a new table. Option 1 (an ISO_TYPE lookup table, a full 3NF decomposition) is saved in `git stash` ("Option 1: iso_type lookup table") to explore later.
+- **Login is application-level (decided 2026-11-19):** users in `backend/users.json` (bcrypt hashes, git-ignored, created with `backend/manage_users.py`), JWT tokens, role checks on every FastAPI endpoint, agents filtered to their own company's port calls. No `app_user` table (schema unchanged). Roles: admin, operations, customs, agent. Possible upgrade: users table + PostgreSQL row-level security.
 - Names kept simple: SHIP_LOCATION (AIS positions), COMPANY (agents/shippers/consignees), SHIPMENT (one Bill of Lading).
 
 ## Stack
