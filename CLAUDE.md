@@ -60,6 +60,7 @@ Create tables in the order above (parents before children).
 - Stored procedure `allocate_berth(call_id)`: earliest free berth matching cargo_type, loa, draft.
 - Transaction: customs clearance = filing Cleared + duty recorded + containers Released, all-or-nothing, with a rollback demo.
 - Views: v_waiting_time, v_berth_occupancy, v_pending_customs.
+- **Stakeholder views (2026-11-19):** v_berth_queue (operations), v_customs_workload (customs), v_agent_calls (agents) + procedure `record_inspection()`; each role has its own home screen. See `docs/stakeholder_views.md` (three-schema architecture).
 - Indexes: port_call(berth_number, berth_start), shipment(hs_code), customs_filing(filing_status).
 - Read-only DB user for the NL query assistant.
 - Normalization write-up to 3NF.

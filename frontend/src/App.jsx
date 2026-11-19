@@ -1,18 +1,21 @@
 import { useEffect, useState } from 'react'
 import { NavLink, Navigate, Route, Routes, useLocation } from 'react-router-dom'
 import { ROLE_LABEL, useAuth } from './auth.jsx'
+import AgentHome from './pages/AgentHome.jsx'
 import Ask from './pages/Ask.jsx'
 import ComingSoon from './pages/ComingSoon.jsx'
 import Customs from './pages/Customs.jsx'
+import CustomsHome from './pages/CustomsHome.jsx'
 import Dashboard from './pages/Dashboard.jsx'
 import Login from './pages/Login.jsx'
+import OpsHome from './pages/OpsHome.jsx'
 import PortCalls from './pages/PortCalls.jsx'
 import Upload from './pages/Upload.jsx'
 import { useFetch } from './useFetch.js'
 
 const NAV = [
   { group: 'Operations', items: [
-    { to: '/dashboard',  label: 'Dashboard',  icon: '◧' },
+    { to: '/dashboard',  label: 'Home',       icon: '◧' },
     { to: '/port-calls', label: 'Port Calls', icon: '⚓' },
   ]},
   { group: 'Customs', items: [
@@ -27,6 +30,15 @@ const NAV = [
   ]},
 ]
 const TITLES = Object.fromEntries(NAV.flatMap((g) => g.items.map((i) => [i.to, i.label])))
+
+// Each stakeholder gets a home screen built for its own job, all reading the
+// same database through its own view (external schema).
+const HOME = {
+  admin:      { title: 'Port Overview',     page: <Dashboard /> },
+  operations: { title: 'Berth Planning',    page: <OpsHome /> },
+  customs:    { title: 'Customs Workbench', page: <CustomsHome /> },
+  agent:      { title: 'My Vessels',        page: <AgentHome /> },
+}
 
 // light by default; the choice is remembered in this browser only
 function useTheme() {
@@ -83,7 +95,7 @@ function Shell({ theme, toggleTheme }) {
   const [updated, setUpdated] = useState(new Date())
   const health = useFetch('/health')
   const { pathname } = useLocation()
-  const title = TITLES[pathname] ?? 'Dashboard'
+  const title = pathname === '/dashboard' ? HOME[user.role].title : TITLES[pathname] ?? HOME[user.role].title
 
   function refresh() {
     setRefreshKey((k) => k + 1)   // remounts the page, which re-fetches its data
@@ -145,7 +157,7 @@ function Shell({ theme, toggleTheme }) {
           <div className="page" key={refreshKey}>
             <Routes>
               <Route path="/" element={<Navigate to="/dashboard" replace />} />
-              <Route path="/dashboard" element={<Dashboard />} />
+              <Route path="/dashboard" element={HOME[user.role].page} />
               <Route path="/port-calls" element={<PortCalls />} />
               <Route path="/customs" element={<Guard path="/customs"><Customs /></Guard>} />
               <Route path="/map" element={

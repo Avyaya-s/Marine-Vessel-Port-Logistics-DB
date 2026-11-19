@@ -183,3 +183,58 @@ BEGIN
     END IF;
 END;
 $$;
+
+
+-- ---------------------------------------------------------------------
+-- record_inspection(filing_no, officer, result, remarks)
+--
+-- A customs officer records an inspection.  One transaction:
+--   1. lock the filing (FOR UPDATE)
+--   2. number the inspection: next inspection_no for this filing
+--      (INSPECTION is a weak entity; inspection_no is its partial key)
+--   3. insert the inspection
+--   4. move the filing to the status the result implies:
+--        Discrepancy -> Held          (goods stopped)
+--        Pending     -> Under Review  (inspection ordered, not done)
+--        Clear       -> Under Review  (released from Held; the officer then
+--                                      clears it with clear_customs())
+--
+-- Why the lock matters: two officers recording at the same moment would
+-- both read max(inspection_no) = 2 and both try to insert number 3; the
+-- second would fail on the primary key.  Locking the filing row first
+-- makes them take turns, so the numbers come out 3 and 4.
+--
+-- Usage:  CALL record_inspection('BE-2026-000104', 'A. Khan', 'Clear', 'Contents match invoice');
+-- ---------------------------------------------------------------------
+CREATE OR REPLACE PROCEDURE record_inspection(
+    p_filing_no           VARCHAR,
+    p_officer             VARCHAR,
+    p_result              VARCHAR,
+    p_remarks             TEXT DEFAULT NULL,
+    INOUT o_inspection_no SMALLINT DEFAULT NULL,
+    INOUT o_filing_status VARCHAR DEFAULT NULL)
+LANGUAGE plpgsql AS $$
+DECLARE
+    f customs_filing%ROWTYPE;
+BEGIN
+    SELECT * INTO f FROM customs_filing WHERE filing_no = p_filing_no FOR UPDATE;
+    IF NOT FOUND THEN
+        RAISE EXCEPTION 'Filing % does not exist', p_filing_no;
+    END IF;
+    IF f.filing_status = 'Cleared' THEN
+        RAISE EXCEPTION 'Filing % is already cleared; it cannot be inspected', p_filing_no;
+    END IF;
+    IF p_result NOT IN ('Pending', 'Clear', 'Discrepancy') THEN
+        RAISE EXCEPTION 'Result must be Pending, Clear or Discrepancy, got %', p_result;
+    END IF;
+
+    SELECT COALESCE(max(inspection_no), 0) + 1 INTO o_inspection_no
+    FROM inspection WHERE filing_no = p_filing_no;
+
+    INSERT INTO inspection (filing_no, inspection_no, inspection_date, officer_name, result, remarks)
+    VALUES (p_filing_no, o_inspection_no, current_date, p_officer, p_result, p_remarks);
+
+    o_filing_status := CASE p_result WHEN 'Discrepancy' THEN 'Held' ELSE 'Under Review' END;
+    UPDATE customs_filing SET filing_status = o_filing_status WHERE filing_no = p_filing_no;
+END;
+$$;

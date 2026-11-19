@@ -41,8 +41,8 @@ Then any file in `tests/`.
 |---|---|
 | `schema.sql` | `cargo_category` domain, `is_valid_imo()` function, 10 tables with all PK/FK/UNIQUE/NOT NULL/CHECK constraints, indexes |
 | `triggers.sql` | `check_berth_overlap`: rejects overlapping bookings on the same berth; `check_berth_fit`: rejects a vessel whose LOA/draft exceeds the berth limits; `set_call_status`: derives `call_status` from `ata` / `atb` / `atd`; `check_company_role` / `lock_company_type`: agents, shippers and consignees are used only in their own role |
-| `procedures.sql` | `allocate_berth(call_id [, stay])`: books the earliest free berth that fits the vessel; `clear_customs(filing_no, duty)`: customs clearance as one all-or-nothing transaction |
-| `views.sql` | `v_waiting_time`, `v_berth_occupancy`, `v_pending_customs` |
+| `procedures.sql` | `allocate_berth(call_id [, stay])`: books the earliest free berth that fits the vessel; `clear_customs(filing_no, duty)`: customs clearance as one all-or-nothing transaction; `record_inspection(filing_no, officer, result, remarks)`: numbers and records an inspection and updates the filing status |
+| `views.sql` | `v_waiting_time`, `v_berth_occupancy`, `v_pending_customs`; stakeholder views `v_berth_queue`, `v_customs_workload`, `v_agent_calls` |
 | `roles.sql` | read-only login `nl_assistant` (via group role `port_readonly`) for the NL query assistant |
 | `sample_data.sql` | 5-10 hand-written rows per table (one port call in each status) |
 | `rebuild.sql` / `run_tests.sql` | psql scripts that run everything above / every test |

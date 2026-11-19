@@ -59,6 +59,11 @@ Set `JWT_SECRET` in `.env` (see `.env.example`) so logins survive a restart.
 | GET | `/api/berths` | who is at each berth now, who is next | `v_berth_occupancy` |
 | GET | `/api/waiting-times` | waiting time, delays, ETA errors | `v_waiting_time` |
 | GET | `/api/customs/pending` | uncleared filings, riskiest first | `v_pending_customs` |
+| GET | `/api/customs/workload` | customs home counts | `v_customs_workload` |
+| GET | `/api/customs/{filing_no}` | one filing with parties, containers, inspections | joins |
+| POST | `/api/customs/{filing_no}/inspections` | record an inspection (body: `{"result": "Clear", "remarks": "..."}`) | `record_inspection()` |
+| GET | `/api/home/operations/queue` | operations home: berth queue | `v_berth_queue` |
+| GET | `/api/home/agent/calls` | agent home: own calls with progress and paperwork | `v_agent_calls` |
 | POST | `/api/customs/{filing_no}/clear` | clear a filing (body: `{"duty": 345000}`) | `clear_customs()` |
 | POST | `/api/ask` | plain-English question -> SQL -> rows (body: `{"question": "..."}`) | local LLM + `nl_assistant` role |
 | GET | `/api/ask/info` | which LLM model is used | |

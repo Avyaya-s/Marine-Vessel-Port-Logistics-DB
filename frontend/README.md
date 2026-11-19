@@ -21,7 +21,7 @@ The app starts at a login page (demo accounts listed on it; see `backend/README.
 
 | Page | Shows | Database objects behind it |
 |---|---|---|
-| Dashboard | calls per status, berth occupancy, waiting times | `port_call`, `v_berth_occupancy`, `v_waiting_time` |
+| Home (per role) | **admin**: Port Overview (calls per status, berth schedule, waiting times, risk). **operations**: Berth Planning (queue + Gantt). **customs**: Customs Workbench (inbox + filing detail + record inspection / clear). **agent**: My Vessels (progress tracker per ship). See `docs/stakeholder_views.md` | `v_berth_queue`, `v_customs_workload`, `v_agent_calls`, ... |
 | Port Calls | every visit; **Allocate berth** button for calls with no berth | `allocate_berth()` |
 | Customs | uncleared filings, riskiest first; **Clear** with a duty amount | `v_pending_customs`, `clear_customs()` |
 | Ask the Database | plain-English question -> generated SQL + results | `/api/ask` (local LLM, read-only `nl_assistant`) |

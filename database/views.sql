@@ -136,3 +136,124 @@ LEFT JOIN LATERAL (
 ) last_insp ON TRUE
 WHERE cf.filing_status <> 'Cleared'
 ORDER BY cf.risk_score DESC NULLS LAST, cf.filing_date;
+
+
+-- =====================================================================
+-- Stakeholder views (external schemas)
+--
+-- One conceptual schema (the 10 tables), one external view per
+-- stakeholder.  Each view answers that stakeholder's questions from the
+-- SAME rows: a ship's arrival time is stored once in port_call and shows
+-- up as a planning input for operations, as progress for the agent and as
+-- context for customs.  Nothing is copied, so nothing can disagree.
+-- (ANSI/SPARC three-schema architecture: external / conceptual / internal.)
+-- =====================================================================
+
+-- ---------------------------------------------------------------------
+-- v_berth_queue : PORT OPERATIONS.  "Which ships need my attention?"
+--
+-- Every call that has not berthed yet (Expected or Waiting), in the order
+-- the ships will be ready, with:
+--   queue_state      Needs berth | Waiting for berth | Booked
+--   ready_time       ata, else ML predicted_eta, else agent eta
+--                    (the same rule allocate_berth() uses)
+--   suitable_berths  how many berths could physically take the ship:
+--                    0 means no berth in the port fits it (escalate!)
+-- ---------------------------------------------------------------------
+CREATE OR REPLACE VIEW v_berth_queue AS
+SELECT pc.call_id,
+       v.vessel_name,
+       v.vessel_type,
+       v.loa,
+       v.draft,
+       c.company_name                              AS agent,
+       pc.call_status,
+       pc.eta,
+       pc.predicted_eta,
+       pc.ata,
+       COALESCE(pc.ata, pc.predicted_eta, pc.eta)  AS ready_time,
+       pc.berth_number,
+       pc.berth_start,
+       CASE
+           WHEN pc.berth_number IS NULL   THEN 'Needs berth'
+           WHEN pc.call_status = 'Waiting' THEN 'Waiting for berth'
+           ELSE 'Booked'
+       END                                         AS queue_state,
+       (SELECT count(*)
+        FROM berth b
+        WHERE b.cargo_type = v.vessel_type
+          AND b.max_loa   >= v.loa
+          AND b.max_draft >= v.draft)              AS suitable_berths
+FROM port_call pc
+JOIN vessel  v ON v.imo_number = pc.imo_number
+JOIN company c ON c.company_id = pc.agent_id
+WHERE pc.call_status IN ('Expected', 'Waiting')
+ORDER BY ready_time;
+
+-- ---------------------------------------------------------------------
+-- v_agent_calls : SHIPPING AGENT.  "Where is my ship, and my paperwork?"
+--
+-- One row per port call (the API filters it to the agent's own company),
+-- with the call's progress, its import / export manifests and the
+-- customs status of the cargo on board.
+-- ---------------------------------------------------------------------
+CREATE OR REPLACE VIEW v_agent_calls AS
+SELECT pc.call_id,
+       pc.agent_id,
+       v.vessel_name,
+       v.imo_number,
+       v.vessel_type,
+       v.flag,
+       pc.call_status,
+       pc.eta,
+       pc.predicted_eta,
+       pc.ata,
+       pc.atb,
+       pc.atd,
+       pc.berth_number,
+       pc.berth_start,
+       pc.berth_end,
+       igm.manifest_no                      AS import_manifest,
+       egm.manifest_no                      AS export_manifest,
+       COALESCE(cargo.shipments, 0)         AS shipments,
+       COALESCE(cargo.customs_cleared, 0)   AS customs_cleared,
+       COALESCE(cargo.customs_pending, 0)   AS customs_pending
+FROM port_call pc
+JOIN vessel v ON v.imo_number = pc.imo_number
+LEFT JOIN shipping_manifest igm ON igm.call_id = pc.call_id AND igm.manifest_type = 'IGM'
+LEFT JOIN shipping_manifest egm ON egm.call_id = pc.call_id AND egm.manifest_type = 'EGM'
+LEFT JOIN LATERAL (
+    SELECT count(*)                                              AS shipments,
+           count(*) FILTER (WHERE cf.filing_status = 'Cleared')  AS customs_cleared,
+           count(*) FILTER (WHERE cf.filing_status <> 'Cleared') AS customs_pending
+    FROM shipping_manifest m
+    JOIN shipment s            ON s.manifest_no = m.manifest_no
+    LEFT JOIN customs_filing cf ON cf.shipment_no = s.shipment_no
+    WHERE m.call_id = pc.call_id
+) cargo ON TRUE;
+
+-- ---------------------------------------------------------------------
+-- v_customs_workload : CUSTOMS OFFICER.  "How much is waiting on me?"
+--
+-- A single row of counts for the officer's home screen.
+-- awaiting_inspection = filings whose latest inspection is still Pending.
+-- ---------------------------------------------------------------------
+CREATE OR REPLACE VIEW v_customs_workload AS
+SELECT count(*) FILTER (WHERE cf.filing_status <> 'Cleared')                       AS pending_total,
+       count(*) FILTER (WHERE cf.filing_status = 'Filed')                          AS filed,
+       count(*) FILTER (WHERE cf.filing_status = 'Under Review')                   AS under_review,
+       count(*) FILTER (WHERE cf.filing_status = 'Held')                           AS held,
+       count(*) FILTER (WHERE cf.filing_status <> 'Cleared' AND cf.risk_score >= 0.7) AS high_risk,
+       count(*) FILTER (WHERE cf.filing_status <> 'Cleared' AND cf.risk_score IS NULL) AS unscored,
+       count(*) FILTER (WHERE cf.filing_status <> 'Cleared' AND last_insp.result = 'Pending')
+                                                                                   AS awaiting_inspection,
+       count(*) FILTER (WHERE cf.filing_status = 'Cleared')                        AS cleared_total,
+       COALESCE(sum(cf.declared_value) FILTER (WHERE cf.filing_status <> 'Cleared'), 0)
+                                                                                   AS pending_value
+FROM customs_filing cf
+LEFT JOIN LATERAL (
+    SELECT i.result FROM inspection i
+    WHERE i.filing_no = cf.filing_no
+    ORDER BY i.inspection_no DESC
+    LIMIT 1
+) last_insp ON TRUE;

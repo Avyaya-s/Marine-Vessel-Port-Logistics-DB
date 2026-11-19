@@ -19,7 +19,7 @@ from auth import ROLES, USERS_FILE, hash_password, load_users
 DEMO = [  # username, role, name, company_id, password  (demo only, never in production)
     ("admin",     "admin",      "Harbour Master",             None, "admin123"),
     ("ops",       "operations", "Port Operations Officer",    None, "ops123"),
-    ("customs",   "customs",    "Customs Officer",            None, "customs123"),
+    ("customs",   "customs",    "A. Khan",                    None, "customs123"),
     ("seaways",   "agent",      "Seaways Shipping Agency",    1,    "agent123"),
     ("bluewater", "agent",      "Bluewater Maritime Agents",  2,    "agent123"),
 ]

@@ -24,7 +24,8 @@ Related documents: `docs/phase1_summary.md` (database overview), `docs/normaliza
 13. [NLP: Natural-language query assistant](#13-nlp-natural-language-query-assistant)
 14. [NLP: Document upload (Bill of Lading)](#14-nlp-document-upload-bill-of-lading)
 15. [Login and roles](#15-login-and-roles)
-16. [All issues faced (quick list)](#16-all-issues-faced-quick-list)
+16. [One database, many stakeholders](#16-one-database-many-stakeholders)
+17. [All issues faced (quick list)](#17-all-issues-faced-quick-list)
 
 ---
 
@@ -319,7 +320,21 @@ Related documents: `docs/phase1_summary.md` (database overview), `docs/normaliza
 
 ---
 
-## 16. All issues faced (quick list)
+## 16. One database, many stakeholders
+
+1. **The core idea of the project**: several stakeholders with different goals (operations, customs, agents, harbour master) share **one database**, each through **its own view**. A fact like a ship's arrival time is stored once and appears as a planning input, a progress step and a waiting-time start. **No redundancy, no inconsistency, one source of truth**: what a DBMS gives over separate spreadsheets per department.
+2. **Three-schema architecture (ANSI/SPARC)**: external level (one view per stakeholder), conceptual level (the 10 tables), internal level (storage, indexes).
+3. **Data independence**: *logical*: screens depend on views, so tables can change and only the views need updating; *physical*: indexes change speed, not results.
+4. **Stakeholder views**: `v_berth_queue` (operations: not-yet-berthed calls in ready order, queue state, how many berths fit, 0 = escalate), `v_customs_workload` (customs counts), `v_agent_calls` (each call's progress, manifests, customs status of its cargo).
+5. **UI follows the user's goal, not the tables**: operations gets an action queue + Gantt, customs an inbox workbench, agents a parcel-tracking style progress bar, the admin the port-wide dashboard.
+6. **`record_inspection()`**: locks the filing, computes the next `inspection_no` (weak entity partial key), inserts, and updates the filing status (Discrepancy → Held, Pending/Clear → Under Review), all in one transaction. The lock stops two officers from getting the same number.
+7. **Identity from the token**: the inspecting officer's name is taken from the login token, never from the request body, so nobody can record an inspection in someone else's name.
+8. **Same rule in one place**: the ready-time rule (`ata` → `predicted_eta` → `eta`) is used by both `allocate_berth()` and `v_berth_queue`, so the queue order matches what the allocator does.
+9. **Tests**: 14 new (`test_role_views.sql`); full suite 104.
+
+---
+
+## 17. All issues faced (quick list)
 
 | # | Issue | Lesson |
 |---|---|---|
@@ -345,3 +360,4 @@ Related documents: `docs/phase1_summary.md` (database overview), `docs/normaliza
 | 20 | StrictMode ran the upload twice | Guard one-off effects with `useRef` |
 | 21 | Backend crashed after a code change | Install new requirements in the venv |
 | 22 | Couldn't screenshot logged-in pages headlessly | Drive the browser via the DevTools protocol |
+| 23 | `printf` turned `\echo` into an escape character | Shell escapes: append text with an editor, not printf |
